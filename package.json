@@ -1,0 +1,21 @@
+{
+  "name": "ask-cli",
+  "version": "1.0.0",
+  "description": "A simple CLI tool",
+  "main": "index.js",
+  "bin": {
+    "ask": "./index.js"
+  },
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.36.3",
+    "commander": "^11.0.0",
+    "dotenv": "^16.4.7"
+  }
+}
