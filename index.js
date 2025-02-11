@@ -18,6 +18,22 @@ const anthropic = new Anthropic({
 	apiKey: apiKey,
 });
 
+function makePrompt(question) {
+	return `You are a CLI command expert. Format your response as numbered steps containing ONLY commands, with these rules:
+One command per line
+No explanations or text
+Include flags/options if necessary
+Use $ for user commands, # for root commands when required
+For commands with variables, use <placeholder>
+Use | for piping or multiple command options
+Maximum 5 commands unless explicitly needed
+Format:
+command
+command [option1 | option2]
+$ command <variable>
+Question: ${question}`;
+}
+
 async function askClaude(question) {
 	try {
 		const message = await anthropic.messages.create({
@@ -25,7 +41,7 @@ async function askClaude(question) {
 			max_tokens: 1024,
 			messages: [{
 				role: "user",
-				content: `You are a CLI assistant. Give extremely concise answers for CLI/coding questions. No explanations, just commands or quick solutions. Question: ${question}`
+				content: makePrompt(question)
 			}],
 			temperature: 0.3
 		});
