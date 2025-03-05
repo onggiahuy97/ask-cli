@@ -4,6 +4,7 @@ import { config } from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { Anthropic } from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 config({ path: join(__dirname, '.env') });
@@ -17,6 +18,10 @@ if (!apiKey) {
 const anthropic = new Anthropic({
 	apiKey: apiKey,
 });
+
+const googleAPI = process.env.GOOGLE_API_KEY;
+const genAI = new GoogleGenerativeAI(googleAPI)
+const genAIModel = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
 
 function makePrompt(question) {
 	return `You are a CLI command expert. Format your response as numbered steps containing ONLY commands, with these rules:
@@ -51,9 +56,20 @@ async function askClaude(question) {
 	}
 }
 
+async function askGemini(question) {
+	try {
+		const result = await genAIModel.generateContent(question)
+		return result.response.text()
+	} catch (error) {
+		return error;
+	}
+}
+
+
 program
 	.option('-c, --claude', 'Use Claude mode')
 	.option('-o, --other', 'Use other mode')
+	.option('-g, --gemini', 'Use Google Gemini mode')
 	.allowExcessArguments(true)
 	.parse();
 
@@ -62,14 +78,29 @@ const message = program.args.join(' ');
 
 if (options.claude) {
 	askClaude(message).then(response => {
-		if (Array.isArray(response)) {
-			console.log(response[0].text);
-		} else {
-			console.log(response);
-		}
+		console.log(response[0].text);
+	});
+} else if (options.gemini) {
+	askGemini(message).then(response => {
+		console.log(response);
 	});
 } else if (options.other) {
 	console.log(`Other mode: ${message}`);
 } else {
 	console.log('Please specify a mode: -c or -o');
 }
+
+//if (options.claude) {
+//	askClaude(message).then(response => {
+//		if (Array.isArray(response)) {
+//			console.log(response[0].text);
+//		} else {
+//			console.log(response);
+//		}
+//	});
+//} else if (options.other) {
+//	console.log(`Other mode: ${message}`);
+//} else {
+//	console.log('Please specify a mode: -c or -o');
+//}
+//
