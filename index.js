@@ -24,22 +24,50 @@ const genAI = new GoogleGenerativeAI(googleAPI)
 const genAIModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
 
 function makePrompt(question) {
-	return `You are a CLI command expert. Respond based on what's requested:
+	const lowerQuestion = question.toLowerCase();
 
-For CLI requests:
-- Return ONLY commands without explanations
+	// Case 1: CLI command request
+	if (lowerQuestion.includes("cli to") ||
+		lowerQuestion.includes("command to") &&
+		(lowerQuestion.includes("in terminal") ||
+			lowerQuestion.includes("in shell") ||
+			lowerQuestion.includes("in bash"))) {
+		return `Return ONLY the commands without any explanation:
 - One command per line
 - Include essential flags/options
 - Use $ for user commands, # for root commands
 - For variables, use <placeholder>
-- Maximum 3 commands unless necessary
+- Maximum 3 commands unless absolutely necessary
 
-For questions:
-- Provide extremely short, precise answers
+Command for: ${question}`;
+	}
+	// Case 2: Code request with language specification
+	else if (lowerQuestion.includes("code to")) {
+		// Extract language if specified, otherwise default to Python
+		let language = "python";
+		const languageMatch = lowerQuestion.match(/in (\w+)$/);
+		if (languageMatch && languageMatch[1]) {
+			language = languageMatch[1];
+		}
+
+		return `Provide ONLY the function code in ${language}, with no explanations, examples, or use cases:
+- Include necessary imports
+- Return ONLY the raw code
+- No introduction or conclusion text
+- No explanations of what the code does
+- No suggestions for how to use it
+
+Code request: ${question}`;
+	}
+	// Case 3: How-to or other questions
+	else {
+		return `Provide an extremely short, precise answer:
 - No unnecessary details or context
 - 1-5 sentences maximum
+- Focus only on directly answering the question
 
 Question: ${question}`;
+	}
 }
 
 async function askClaude(question) {
