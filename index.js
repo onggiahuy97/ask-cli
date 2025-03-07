@@ -28,10 +28,10 @@ function makePrompt(question) {
 
 	// Case 1: CLI command request
 	if (lowerQuestion.includes("cli to") ||
-		lowerQuestion.includes("command to") &&
-		(lowerQuestion.includes("in terminal") ||
-			lowerQuestion.includes("in shell") ||
-			lowerQuestion.includes("in bash"))) {
+		(lowerQuestion.includes("command to") &&
+			(lowerQuestion.includes("in terminal") ||
+				lowerQuestion.includes("in shell") ||
+				lowerQuestion.includes("in bash")))) {
 		return `Return ONLY the commands without any explanation:
 - One command per line
 - Include essential flags/options
@@ -59,14 +59,19 @@ Command for: ${question}`;
 
 Code request: ${question}`;
 	}
-	// Case 3: How-to or other questions
-	else {
+	// Case 3: How-to questions
+	else if (lowerQuestion.startsWith("how to")) {
 		return `Provide an extremely short, precise answer:
 - No unnecessary details or context
 - 1-5 sentences maximum
 - Focus only on directly answering the question
 
 Question: ${question}`;
+	}
+	// Case 4: Default case - answer based on context
+	else {
+		return `Answer this question based on the context and requirements and make sure it short and percise:
+${question}`;
 	}
 }
 
