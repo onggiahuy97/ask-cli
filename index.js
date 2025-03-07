@@ -21,22 +21,58 @@ const anthropic = new Anthropic({
 
 const googleAPI = process.env.GOOGLE_API_KEY;
 const genAI = new GoogleGenerativeAI(googleAPI)
-const genAIModel = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
+const genAIModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
 
 function makePrompt(question) {
-	return `You are a CLI command expert. Format your response as numbered steps containing ONLY commands, with these rules:
-One command per line
-No explanations or text
-Include flags/options if necessary
-Use $ for user commands, # for root commands when required
-For commands with variables, use <placeholder>
-Use | for piping or multiple command options
-Maximum 5 commands unless explicitly needed
-Format:
-command
-command [option1 | option2]
-$ command <variable>
+	const lowerQuestion = question.toLowerCase();
+
+	// Case 1: CLI command request
+	if (lowerQuestion.includes("cli to") ||
+		(lowerQuestion.includes("command to") &&
+			(lowerQuestion.includes("in terminal") ||
+				lowerQuestion.includes("in shell") ||
+				lowerQuestion.includes("in bash")))) {
+		return `Return ONLY the commands without any explanation:
+- One command per line
+- Include essential flags/options
+- Use $ for user commands, # for root commands
+- For variables, use <placeholder>
+- Maximum 3 commands unless absolutely necessary
+
+Command for: ${question}`;
+	}
+	// Case 2: Code request with language specification
+	else if (lowerQuestion.includes("code to")) {
+		// Extract language if specified, otherwise default to Python
+		let language = "python";
+		const languageMatch = lowerQuestion.match(/in (\w+)$/);
+		if (languageMatch && languageMatch[1]) {
+			language = languageMatch[1];
+		}
+
+		return `Provide ONLY the function code in ${language}, with no explanations, examples, or use cases:
+- Include necessary imports
+- Return ONLY the raw code
+- No introduction or conclusion text
+- No explanations of what the code does
+- No suggestions for how to use it
+
+Code request: ${question}`;
+	}
+	// Case 3: How-to questions
+	else if (lowerQuestion.startsWith("how to")) {
+		return `Provide an extremely short, precise answer:
+- No unnecessary details or context
+- 1-5 sentences maximum
+- Focus only on directly answering the question
+
 Question: ${question}`;
+	}
+	// Case 4: Default case - answer based on context
+	else {
+		return `Answer this question based on the context and requirements and make sure it short and percise:
+${question}`;
+	}
 }
 
 async function askClaude(question) {
@@ -75,13 +111,14 @@ program
 
 const options = program.opts();
 const message = program.args.join(' ');
+const prompt = makePrompt(message)
 
 if (options.claude) {
-	askClaude(message).then(response => {
+	askClaude(prompt).then(response => {
 		console.log(response[0].text);
 	});
 } else if (options.gemini) {
-	askGemini(message).then(response => {
+	askGemini(prompt).then(response => {
 		console.log(response);
 	});
 } else if (options.other) {
