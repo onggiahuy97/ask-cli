@@ -77,7 +77,7 @@ ${question}`;
 
 async function askClaude(question) {
 	try {
-		const message = await anthropic.messages.create({
+		const stream = await anthropic.messages.stream({
 			model: "claude-3-haiku-20240307",
 			max_tokens: 1024,
 			messages: [{
@@ -86,18 +86,28 @@ async function askClaude(question) {
 			}],
 			temperature: 0.3
 		});
-		return message.content;
+
+		for await (const chunk of stream) {
+			if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+				process.stdout.write(chunk.delta.text);
+			}
+		}
+		console.log(); // New line at the end
 	} catch (error) {
-		return `Error: ${error.message}`;
+		console.error(`Error: ${error.message}`);
 	}
 }
 
 async function askGemini(question) {
 	try {
-		const result = await genAIModel.generateContent(question)
-		return result.response.text()
+		const result = await genAIModel.generateContentStream(question);
+		for await (const chunk of result.stream) {
+			const chunkText = chunk.text();
+			process.stdout.write(chunkText);
+		}
+		console.log(); // New line at the end
 	} catch (error) {
-		return error;
+		console.error(`Error: ${error.message}`);
 	}
 }
 
@@ -114,17 +124,13 @@ const message = program.args.join(' ');
 const prompt = makePrompt(message)
 
 if (options.claude) {
-	askClaude(prompt).then(response => {
-		console.log(response[0].text);
-	});
+	askClaude(prompt);
 } else if (options.gemini) {
-	askGemini(prompt).then(response => {
-		console.log(response);
-	});
+	askGemini(prompt);
 } else if (options.other) {
 	console.log(`Other mode: ${message}`);
 } else {
-	console.log('Please specify a mode: -c or -o');
+	console.log('Please specify a mode: -c or -o or -g');
 }
 
 //if (options.claude) {
