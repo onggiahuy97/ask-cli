@@ -3,8 +3,10 @@ import { program } from 'commander';
 import { config } from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { Anthropic } from '@anthropic-ai/sdk';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { getProvider } from './src/providers/index.js';
+import { validateQuestion } from './src/utils/validator.js';
+import { logError } from './src/utils/logger.js';
+import { loadConfig, getProviderConfig } from './src/utils/config-loader.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 config({ path: join(__dirname, '.env') });
@@ -113,15 +115,28 @@ async function askGemini(question) {
 
 
 program
-	.option('-c, --claude', 'Use Claude mode')
-	.option('-o, --other', 'Use other mode')
-	.option('-g, --gemini', 'Use Google Gemini mode')
-	.allowExcessArguments(true)
-	.parse();
+  .name('ask')
+  .version('1.0.0', '-v, --version', 'Output the current version')
+  .description('AI-powered CLI assistant using Claude or Gemini')
+  .option('-c, --claude', 'Use Claude AI')
+  .option('-g, --gemini', 'Use Google Gemini')
+  .addHelpText(
+    'after',
+    `
+Examples:
+  $ ask -c "What is Node.js?"
+  $ ask -g "code to reverse a string in python"
+  $ ask -c "cli to list all files recursively"
+  $ ask -g "how to install npm packages"
+
+For more information, visit: https://github.com/onggiahuy97/ask-cli
+`,
+  )
+  .allowExcessArguments(true)
+  .parse();
 
 const options = program.opts();
-const message = program.args.join(' ');
-const prompt = makePrompt(message)
+const question = program.args.join(' ');
 
 if (options.claude) {
 	askClaude(prompt);
@@ -133,17 +148,48 @@ if (options.claude) {
 	console.log('Please specify a mode: -c or -o or -g');
 }
 
-//if (options.claude) {
-//	askClaude(message).then(response => {
-//		if (Array.isArray(response)) {
-//			console.log(response[0].text);
-//		} else {
-//			console.log(response);
-//		}
-//	});
-//} else if (options.other) {
-//	console.log(`Other mode: ${message}`);
-//} else {
-//	console.log('Please specify a mode: -c or -o');
-//}
-//
+// Determine which provider to use
+let providerName = null;
+if (options.claude) {
+  providerName = 'claude';
+} else if (options.gemini) {
+  providerName = 'gemini';
+} else {
+  logError('Please specify a provider: -c (Claude) or -g (Gemini)');
+}
+
+// Build provider configuration from environment variables
+const envConfig = {
+  claude: {
+    apiKey: process.env.CLAUDE_API_KEY,
+    model: process.env.CLAUDE_MODEL,
+    maxTokens: process.env.CLAUDE_MAX_TOKENS
+      ? parseInt(process.env.CLAUDE_MAX_TOKENS, 10)
+      : undefined,
+    temperature: process.env.CLAUDE_TEMPERATURE
+      ? parseFloat(process.env.CLAUDE_TEMPERATURE)
+      : undefined,
+  },
+  gemini: {
+    apiKey: process.env.GOOGLE_API_KEY,
+    model: process.env.GEMINI_MODEL,
+  },
+};
+
+// Get merged provider configuration (defaults < config file < env)
+const providerConfig = getProviderConfig(appConfig, providerName, envConfig[providerName]);
+
+// Create provider and ask question
+try {
+  const provider = getProvider(providerName, providerConfig);
+  provider
+    .ask(question)
+    .then((response) => {
+      console.log(response);
+    })
+    .catch((error) => {
+      logError(error);
+    });
+} catch (error) {
+  logError(error);
+}
