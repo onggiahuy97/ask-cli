@@ -10,7 +10,7 @@ export default {
   },
   // Google Gemini configuration
   gemini: {
-    model: 'gemini-1.5-flash',
+    model: 'gemini-2.5-flash',
   },
   // Default provider if none specified
   defaultProvider: 'claude',

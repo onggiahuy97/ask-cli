@@ -17,7 +17,7 @@ export class GeminiProvider extends BaseProvider {
     this.validateConfig();
     const genAI = new GoogleGenerativeAI(this.config.apiKey);
     this.model = genAI.getGenerativeModel({
-      model: this.config.model || 'gemini-1.5-flash',
+      model: this.config.model || 'gemini-2.5-flash',
     });
   }
 
