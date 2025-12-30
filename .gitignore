@@ -1,4 +1,29 @@
 node_modules/
-.env 
+.env
 .DS_Store
 *.log
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Build outputs
+dist/
+build/
+
+# Editor directories
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Plan files (Claude Code)
+.claude/
